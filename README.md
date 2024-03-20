@@ -9,4 +9,4 @@ Base url https://huggingface.co/shadowlilac/aesthetic-shadow
 
 ## Installation
 
-'''git clone https://github.com/gluttony-10/sd-webui-aesthetic-shadow.git'''
+`git clone https://github.com/gluttony-10/sd-webui-aesthetic-shadow.git`
