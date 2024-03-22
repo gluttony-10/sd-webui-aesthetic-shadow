@@ -1,5 +1,4 @@
 from modules import script_callbacks
-from modules.call_queue import wrap_gradio_gpu_call
 import gradio as gr
 
 import torch
@@ -11,14 +10,15 @@ from glob import glob
 from PIL import Image, UnidentifiedImageError
 from pathlib import Path
 from collections import OrderedDict
+from scripts import format
+from modules.call_queue import wrap_gradio_gpu_call
 
 
 def pipe(single_image_file):
     pipe = pipeline("image-classification", model="shadowlilac/aesthetic-shadow-v2", device=0)
     result = pipe(images=[single_image_file])
-    prediction_single = result[0]
-    score = str(round([p for p in prediction_single if p['label'] == 'hq'][0]['score'], 2))
-    return score
+    score = str(round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2))
+    return [score, '']
 
 
 def batch_pipe(batch_input_glob, batch_input_recursive, batch_output_dir, batch_output_action_on_conflict, batch_remove_duplicated_tag, batch_output_save_json):
@@ -41,7 +41,7 @@ def batch_pipe(batch_input_glob, batch_input_recursive, batch_output_dir, batch_
 
         # check the input directory path
         if not os.path.isdir(base_dir):
-            return ['', None, None, 'input path is not a directory']
+            return ['input path is not a directory']
 
         # this line is moved here because some reason
         # PIL.Image.registered_extensions() returns only PNG if you call too early
@@ -101,13 +101,13 @@ def batch_pipe(batch_input_glob, batch_input_recursive, batch_output_dir, batch_
                 if batch_output_action_on_conflict == 'ignore':
                     print(f'skipping {path}')
                     continue
-            
-            result = pipe(image)
-            score = str(round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2))
+
+            result = pipe(images=[image])
+            score = round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2)
             if score >= 0.5:
-                processed_tags = "hq"
+                processed_tags = ["hq"]
             else:
-                processed_tags = "lq"
+                processed_tags = ["lq"]
 
             plain_tags = ', '.join(processed_tags)
 
@@ -163,10 +163,11 @@ def add_tab():
                     with gr.Row():
                         with gr.Column():
                             input_image = gr.Image(type="filepath", label="Input")
-                            run_btn = gr.Button(value="Submit")
                         with gr.Column():
+                            run_btn = gr.Button(value="Submit", variant="primary")
                             output_text = gr.Textbox(label="Output")
-                    run_btn.click(pipe, inputs=[input_image], outputs=[output_text])
+                            info1 = gr.HTML()
+                    run_btn.click(wrap_gradio_gpu_call(pipe), inputs=[input_image], outputs=[output_text,info1])
                 with gr.TabItem(label='Batch from directory'): 
                     with gr.Row():
                         with gr.Column():
@@ -199,12 +200,12 @@ def add_tab():
                             )
                         with gr.Column():
                             submit = gr.Button(
-                                value='submit',
+                                value='Submit',
                                 variant='primary'
                             )
                             info = gr.HTML()
                     submit.click(
-                        batch_pipe,
+                        wrap_gradio_gpu_call(batch_pipe),
                         inputs=[
                             batch_input_glob,
                             batch_input_recursive,
