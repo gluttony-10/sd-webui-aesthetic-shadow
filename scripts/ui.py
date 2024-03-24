@@ -14,16 +14,17 @@ from scripts import format
 from modules.call_queue import wrap_gradio_gpu_call
 
 
-def pipe(single_image_file):
-    pipe = pipeline("image-classification", model="shadowlilac/aesthetic-shadow-v2", device=0)
+def pipe(model_select, single_image_file):
+    print(model_select)
+    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0)
     result = pipe(images=[single_image_file])
     score = str(round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2))
     return [score, '']
 
 
-def batch_pipe(batch_input_glob, batch_input_recursive, batch_output_dir, batch_output_action_on_conflict, batch_remove_duplicated_tag, batch_output_save_json):
-    pipe = pipeline("image-classification", model="shadowlilac/aesthetic-shadow-v2", device=0)
-
+def batch_pipe(model_select, batch_input_glob, batch_input_recursive, batch_output_dir, batch_output_action_on_conflict, batch_remove_duplicated_tag, batch_output_save_json):
+    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0)
+    
     # batch process
     batch_input_glob = batch_input_glob.strip()
     batch_output_dir = batch_output_dir.strip()
@@ -142,7 +143,7 @@ def batch_pipe(batch_input_glob, batch_input_recursive, batch_output_dir, batch_
 
     return ['']
 
-
+# ui
 def add_tab():
 
     MARKDOWN = \
@@ -157,6 +158,15 @@ def add_tab():
     with gr.Blocks(analytics_enabled=False) as ui:
         with gr.Row():
             gr.Markdown(MARKDOWN)
+            model_select = gr.Dropdown(
+                                label='model select',
+                                value='aesthetic-shadow-v2',
+                                choices=[
+                                    'aesthetic-shadow-v2',
+                                    'aesthetic-shadow-v2-strict',
+                                    'aesthetic-shadow'
+                                ]
+            )
         with gr.Row(equal_height=True):
             with gr.Tabs():
                 with gr.TabItem(label='Single Image'):
@@ -167,7 +177,11 @@ def add_tab():
                             run_btn = gr.Button(value="Submit", variant="primary")
                             output_text = gr.Textbox(label="Output")
                             info1 = gr.HTML()
-                    run_btn.click(wrap_gradio_gpu_call(pipe), inputs=[input_image], outputs=[output_text,info1])
+                    run_btn.click(
+                        wrap_gradio_gpu_call(pipe), 
+                        inputs=[model_select,input_image], 
+                        outputs=[output_text,info1]
+                    )
                 with gr.TabItem(label='Batch from directory'): 
                     with gr.Row():
                         with gr.Column():
@@ -207,6 +221,7 @@ def add_tab():
                     submit.click(
                         wrap_gradio_gpu_call(batch_pipe),
                         inputs=[
+                            model_select,
                             batch_input_glob,
                             batch_input_recursive,
                             batch_output_dir,
