@@ -15,7 +15,6 @@ from modules.call_queue import wrap_gradio_gpu_call
 
 
 def pipe(model_select, single_image_file):
-    print(model_select)
     pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0)
     result = pipe(images=[single_image_file])
     score = str(round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2))
