@@ -15,14 +15,14 @@ from modules.call_queue import wrap_gradio_gpu_call
 
 
 def pipe(model_select, single_image_file):
-    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0)
+    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0, torch_dtype=torch.float16)
     result = pipe(images=[single_image_file])
     score = str(round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2))
     return [score, '']
 
 
 def batch_pipe(model_select, batch_input_glob, batch_input_recursive, batch_output_dir, batch_output_action_on_conflict, batch_remove_duplicated_tag, batch_output_save_json):
-    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0)
+    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0, torch_dtype=torch.float16)
     
     # batch process
     batch_input_glob = batch_input_glob.strip()
@@ -104,10 +104,7 @@ def batch_pipe(model_select, batch_input_glob, batch_input_recursive, batch_outp
 
             result = pipe(images=[image])
             score = round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2)
-            if score >= 0.5:
-                processed_tags = ["hq"]
-            else:
-                processed_tags = ["lq"]
+            processed_tags = [f'{score}']
 
             plain_tags = ', '.join(processed_tags)
 
@@ -174,7 +171,7 @@ def add_tab():
                             input_image = gr.Image(type="filepath", label="Input")
                         with gr.Column():
                             run_btn = gr.Button(value="Submit", variant="primary")
-                            output_text = gr.Textbox(label="Output")
+                            output_text = gr.Textbox(label="Output", interactive=False)
                             info1 = gr.HTML()
                     run_btn.click(
                         wrap_gradio_gpu_call(pipe), 
