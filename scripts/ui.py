@@ -66,6 +66,7 @@ def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive
                 image.append(Image.open(path))
             # Perform classification for the batch
             results = pipe(images=image)
+            print(f'Prediction: {result}% High Quality from {path}')
 
             for idx, result in enumerate(results):
                 path = batch[idx]
@@ -136,7 +137,7 @@ def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive
                         json.dumps([plain_tags])
                     )
 
-        print('all done :)')
+        print('Processing all done :)')
 
     return ['']
 
