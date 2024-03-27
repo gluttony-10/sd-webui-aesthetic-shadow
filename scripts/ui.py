@@ -150,6 +150,8 @@ def add_tab():
     [GitHub](https://github.com/gluttony-10/sd-webui-aesthetic-shadow) | [Bilibili](https://space.bilibili.com/893892)
 
     Used for [AUTOMATIC1111's stable diffusion webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
+
+    Please wait for 30 seconds for initial submission.
     """
         
     with gr.Blocks(analytics_enabled=False) as ui:
@@ -174,20 +176,21 @@ def add_tab():
                             run_btn = gr.Button(value="Submit", variant="primary")
                             output_text = gr.Textbox(label="Output", interactive=False)
                             info1 = gr.HTML()
-                    run_btn.click(
-                        wrap_gradio_gpu_call(pipe), 
-                        inputs=[model_select,input_image], 
-                        outputs=[output_text,info1]
-                    )
+                    for func in [input_image.change, run_btn.click]:
+                        func(
+                            wrap_gradio_gpu_call(pipe),
+                            inputs=[model_select,input_image], 
+                            outputs=[output_text,info1]
+                        )
                 with gr.TabItem(label='Batch from directory'): 
                     with gr.Row():
                         with gr.Column():
                             batch_size = gr.Slider(
                                 minimum=1, 
-                                maximum=16, 
+                                maximum=128, 
                                 step=1, 
-                                label='Batch size', 
-                                value=8
+                                label='Batch size',
+                                value=8 
                             )
                             batch_input_glob = gr.Textbox(
                                 label='Input directory',
