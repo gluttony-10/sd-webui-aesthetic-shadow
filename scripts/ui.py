@@ -23,7 +23,7 @@ def pipe(model_select, single_image_file):
     return [score, '']
 
 
-def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive, batch_output_dir, batch_output_action_on_conflict, batch_remove_duplicated_tag, batch_output_save_json, aesthetic_tags_input, aesthetic_thresholds_input):
+def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive, batch_output_dir, batch_output_action_on_conflict, aesthetic_tags_input, aesthetic_thresholds_input, batch_remove_duplicated_tag, batch_output_save_json):
     print(f"Loading model {model_select}...")
     pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0, torch_dtype=torch.float16)
     print("Loading completed.")
@@ -115,7 +115,8 @@ def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive
 
                 score = round([p for p in result if p['label'] == 'hq'][0]['score'], 2)
                 print(f'Prediction: {score} High Quality from {path}')
-                processed_tags = next((tag for tag, threshold in zip(aesthetic_tags, aesthetic_thresholds) if score >= threshold), aesthetic_tags[-1])
+                split_tags = next((tag for tag, threshold in zip(aesthetic_tags, aesthetic_thresholds) if score >= threshold), aesthetic_tags[-1])
+                processed_tags = [split_tags]
 
                 plain_tags = ', '.join(processed_tags)
 
@@ -226,12 +227,12 @@ def add_tab():
                             aesthetic_tags_input = gr.Textbox(
                                 label='Aesthetic tags',
                                 placeholder='Enter the aesthetic tags, separated by commas',
-                                value='very aesthetic, aesthetic, displeasing, very displeasing'
+                                value='very aesthetic,aesthetic,displeasing,very displeasing'
                             )
                             aesthetic_thresholds_input = gr.Textbox(
                                 label='Aesthetic thresholds',
                                 placeholder='Enter the aesthetic thresholds, separated by commas',
-                                value='0.71, 0.45, 0.27, 0.0'
+                                value='0.71,0.45,0.27,0.0'
                             )
                             batch_remove_duplicated_tag = gr.Checkbox(
                                 label='Remove duplicated tag'
