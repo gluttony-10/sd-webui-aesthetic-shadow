@@ -29,6 +29,7 @@ def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive
     print("Loading completed.")
     
     aesthetic_tags_input = str(aesthetic_tags_input)
+    aesthetic_thresholds_input = str(aesthetic_thresholds_input)
     aesthetic_tags = aesthetic_tags_input.split(',')
     aesthetic_thresholds = list(map(float, aesthetic_thresholds_input.split(',')))
 
