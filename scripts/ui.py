@@ -28,7 +28,8 @@ def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive
     pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0, torch_dtype=torch.float16)
     print("Loading completed.")
     
-    aesthetic_tags = list(map(str, aesthetic_tags_input.split(',')))
+    aesthetic_tags_input = str(aesthetic_tags_input)
+    aesthetic_tags = aesthetic_tags_input.split(',')
     aesthetic_thresholds = list(map(float, aesthetic_thresholds_input.split(',')))
 
     # batch process
