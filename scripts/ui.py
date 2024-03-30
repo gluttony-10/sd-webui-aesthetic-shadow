@@ -14,19 +14,44 @@ from scripts import format
 from modules.call_queue import wrap_gradio_gpu_call
 
 
-def pipe(model_select, single_image_file):
+# Global variables
+current_model = None
+current_model_name = None
+
+def unload_model():
+    global current_model
+    global current_model_name
+    # Unload the current model
+    if current_model is not None:
+        current_model = None
+        torch.cuda.empty_cache()
+        current_model_name = None
+        print("Model unloaded successfully.")
+        return ['Model unloaded successfully.']
+    else:
+        print("No model to unload.")
+        return ['No model to unload.']
+
+def load_model(model_select):
+    global current_model
+    global current_model_name
+    if current_model_name == model_select:
+        return
+    if current_model is not None and current_model_name != model_select:
+        unload_model()
     print(f"Loading model {model_select}...")
-    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0, torch_dtype=torch.float16)
+    current_model = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0, torch_dtype=torch.float16)
+    current_model_name = model_select
     print("Loading completed.")
-    result = pipe(images=[single_image_file])
+
+def pipe(model_select, single_image_file):
+    load_model(model_select)
+    result = current_model(images=[single_image_file])
     score = str(round([p for p in result[0] if p['label'] == 'hq'][0]['score'], 2))
     return [score, '']
 
-
 def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive, batch_output_dir, batch_output_action_on_conflict, aesthetic_tags_input, aesthetic_thresholds_input, skip_tags_input, batch_remove_duplicated_tag, batch_output_save_json):
-    print(f"Loading model {model_select}...")
-    pipe = pipeline("image-classification", model=f"shadowlilac/{model_select}", device=0, torch_dtype=torch.float16)
-    print("Loading completed.")
+    load_model(model_select)
     
     # Split the tags and thresholds
     skip_tags = skip_tags_input.split(',')
@@ -84,7 +109,7 @@ def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive
                 image.append(Image.open(path))
 
             # Perform classification for the batch
-            results = pipe(images=image)
+            results = current_model(images=image)
             image = []  # Reset the image list for the next batch
 
             for idx, result in enumerate(results):
@@ -117,7 +142,7 @@ def batch_pipe(model_select, batch_size, batch_input_glob, batch_input_recursive
 
                     existing_tags = set(file_content.split(','))
                     if batch_output_action_on_conflict == 'ignore' or any(tag in existing_tags for tag in skip_tags):
-                        print(f'skipping {path}')
+                        print(f'Skipping {path}')
                         continue
 
                     output.append(file_content)
@@ -177,16 +202,27 @@ def add_tab():
         
     with gr.Blocks(analytics_enabled=False) as ui:
         with gr.Row():
-            gr.Markdown(MARKDOWN)
-            model_select = gr.Dropdown(
-                                label='model select',
-                                value='aesthetic-shadow-v2',
-                                choices=[
-                                    'aesthetic-shadow-v2',
-                                    'aesthetic-shadow-v2-strict',
-                                    'aesthetic-shadow'
-                                ]
-            )
+            with gr.Column():
+                gr.Markdown(MARKDOWN)
+            with gr.Column():
+                model_select = gr.Dropdown(
+                    label='model select',
+                    value='aesthetic-shadow-v2',
+                    choices=[
+                    'aesthetic-shadow-v2',
+                    'aesthetic-shadow-v2-strict',
+                    'aesthetic-shadow'
+                    ]
+                )
+                unload_model_button = gr.Button(value="Unload Model", variant="secondary")
+                info2 = gr.HTML()
+                unload_model_button.click(
+                    wrap_gradio_gpu_call(unload_model),
+                    inputs=[],
+                    outputs=[
+                        info2
+                    ]
+                )
         with gr.Row(equal_height=True):
             with gr.Tabs():
                 with gr.TabItem(label='Single Image'):
